@@ -15,3 +15,4 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "DataWatchdog"
+include(":app")
