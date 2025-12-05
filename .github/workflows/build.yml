@@ -23,7 +23,6 @@ jobs:
 
       - name: Build APK
         run: |
-          cd DataWatchdog
           gradle wrapper --gradle-version 8.1
           ./gradlew assembleDebug
 
