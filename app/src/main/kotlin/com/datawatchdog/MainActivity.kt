@@ -126,6 +126,7 @@ class MainActivity : ComponentActivity() {
                             Text("Bundle", fontSize = 12.sp, color = Color.White)
                         }
                     }
+                    } // Missing closing brace for Column
                 }
             }
         }
