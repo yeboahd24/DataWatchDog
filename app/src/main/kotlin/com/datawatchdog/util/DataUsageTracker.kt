@@ -30,14 +30,14 @@ class DataUsageTracker(private val context: Context) {
     private val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE) as NetworkStatsManager
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun getAppDataUsage(): List<AppDataUsage> {
+    fun getAppDataUsage(hoursBack: Int = 24): List<AppDataUsage> {
         if (!hasUsageStatsPermission()) {
             return emptyList()
         }
 
         val usageMap = mutableMapOf<String, AppDataUsage>()
         val now = System.currentTimeMillis()
-        val startTime = now - (24 * 60 * 60 * 1000)
+        val startTime = now - (hoursBack * 60 * 60 * 1000)
 
         try {
             // Query mobile data
