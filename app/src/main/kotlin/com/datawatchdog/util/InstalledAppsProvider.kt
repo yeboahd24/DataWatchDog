@@ -15,17 +15,25 @@ class InstalledAppsProvider(private val context: Context) {
         val packageManager = context.packageManager
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         
-        return packages.map { appInfo ->
-            InstalledApp(
-                packageName = appInfo.packageName,
-                appName = appInfo.loadLabel(packageManager).toString(),
-                isUserInstalled = !isSystemApp(appInfo)
-            )
-        }.sortedBy { it.appName.lowercase() }
-    }
-    
-    private fun isSystemApp(appInfo: ApplicationInfo): Boolean {
-        return (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 ||
-               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+        val apps = packages.mapNotNull { appInfo ->
+            try {
+                val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
+                                packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
+                
+                InstalledApp(
+                    packageName = appInfo.packageName,
+                    appName = appInfo.loadLabel(packageManager).toString(),
+                    isUserInstalled = isUserApp
+                )
+            } catch (e: Exception) {
+                null
+            }
+        }
+        
+        return apps.sortedWith(
+            compareByDescending<InstalledApp> { it.isUserInstalled }
+                .thenBy { it.appName.lowercase() }
+        )
     }
 }
