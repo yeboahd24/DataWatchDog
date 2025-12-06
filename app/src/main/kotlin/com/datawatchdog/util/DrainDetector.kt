@@ -82,7 +82,7 @@ class DrainDetector(private val context: Context? = null) {
         
         usageData.forEach { app ->
             val appTotal = app.getTotal()
-            val percentage = if (totalUsage > 0) (appTotal / totalUsage) * 100 else 0.0
+            val percentage = if (totalUsage > 0) (appTotal.toDouble() / totalUsage.toDouble()) * 100.0 else 0.0
             
             // Record usage for trend analysis
             recordUsage(app.packageName, appTotal)
@@ -116,7 +116,7 @@ class DrainDetector(private val context: Context? = null) {
     ): UsageThresholds {
         
         return if (bundleLimit != null && daysRemaining != null && daysRemaining > 0) {
-            val recommendedDailyUsage = (bundleLimit - totalUsage).toDouble() / daysRemaining
+            val recommendedDailyUsage = (bundleLimit - totalUsage).toDouble() / daysRemaining.toDouble()
             
             UsageThresholds(
                 critical = recommendedDailyUsage * 0.4,
@@ -207,7 +207,7 @@ class DrainDetector(private val context: Context? = null) {
         val totalUsage = app.getTotal()
         
         if (totalUsage > 50 * 1024 * 1024) { // >50MB total
-            val mobileRatio = mobileUsage.toDouble() / totalUsage
+            val mobileRatio = mobileUsage.toDouble() / totalUsage.toDouble()
             
             if (mobileRatio > 0.7) { // >70% mobile usage
                 return DrainAlert(
@@ -282,7 +282,7 @@ class DrainDetector(private val context: Context? = null) {
         val projectedTotalUsage = currentUsage + (dailyUsage * daysRemaining)
         val willExceed = projectedTotalUsage > bundleLimit
         val daysUntilDepletion = if (dailyUsage > 0) {
-            (remainingData / dailyUsage).toInt()
+            (remainingData.toDouble() / dailyUsage).toInt()
         } else {
             daysRemaining
         }
