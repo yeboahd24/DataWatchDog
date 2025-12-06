@@ -52,15 +52,20 @@ fun BundleScreen(viewModel: BundleViewModel) {
                     scope.launch {
                         val expiryDate = System.currentTimeMillis() + (daysRemaining * 24 * 60 * 60 * 1000L)
                         val db = AppDatabase.getDatabase(context)
-                        db.bundleDao().updateBundle(
-                            BundleEntity(
-                                expiryDate = expiryDate,
-                                totalMB = totalMB,
-                                usedMB = usedMB,
-                                provider = provider,
-                                lastUpdated = System.currentTimeMillis()
-                            )
+                        val newBundle = BundleEntity(
+                            id = 1,
+                            expiryDate = expiryDate,
+                            totalMB = totalMB,
+                            usedMB = usedMB,
+                            provider = provider,
+                            lastUpdated = System.currentTimeMillis()
                         )
+                        val existing = db.bundleDao().getBundle()
+                        if (existing != null) {
+                            db.bundleDao().updateBundle(newBundle)
+                        } else {
+                            db.bundleDao().insertBundle(newBundle)
+                        }
                         viewModel.refresh()
                         showTestDialog = false
                     }
