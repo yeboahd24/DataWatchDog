@@ -84,49 +84,49 @@ class MainActivity : ComponentActivity() {
                             2 -> BundleScreen(bundleVM)
                         }
 
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color(0xFF1E1E1E))
-                            .padding(8.dp)
-                    ) {
-                        Button(
-                            onClick = { currentScreen.intValue = 0 },
+                        Row(
                             modifier = Modifier
-                                .weight(1f)
-                                .padding(4.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentScreen.intValue == 0) Color(0xFF51CF66) else Color(0xFF333333)
-                            )
+                                .fillMaxWidth()
+                                .background(Color(0xFF1E1E1E))
+                                .padding(8.dp)
                         ) {
-                            Text("Dashboard", fontSize = 12.sp, color = Color.White)
-                        }
+                            Button(
+                                onClick = { currentScreen.intValue = 0 },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen.intValue == 0) Color(0xFF51CF66) else Color(0xFF333333)
+                                )
+                            ) {
+                                Text("Dashboard", fontSize = 12.sp, color = Color.White)
+                            }
 
-                        Button(
-                            onClick = { currentScreen.intValue = 1 },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(4.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentScreen.intValue == 1) Color(0xFF51CF66) else Color(0xFF333333)
-                            )
-                        ) {
-                            Text("Apps", fontSize = 12.sp, color = Color.White)
-                        }
+                            Button(
+                                onClick = { currentScreen.intValue = 1 },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen.intValue == 1) Color(0xFF51CF66) else Color(0xFF333333)
+                                )
+                            ) {
+                                Text("Apps", fontSize = 12.sp, color = Color.White)
+                            }
 
-                        Button(
-                            onClick = { currentScreen.intValue = 2 },
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(4.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (currentScreen.intValue == 2) Color(0xFF51CF66) else Color(0xFF333333)
-                            )
-                        ) {
-                            Text("Bundle", fontSize = 12.sp, color = Color.White)
+                            Button(
+                                onClick = { currentScreen.intValue = 2 },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen.intValue == 2) Color(0xFF51CF66) else Color(0xFF333333)
+                                )
+                            ) {
+                                Text("Bundle", fontSize = 12.sp, color = Color.White)
+                            }
                         }
                     }
-                    } // Missing closing brace for Column
                 }
             }
         }
