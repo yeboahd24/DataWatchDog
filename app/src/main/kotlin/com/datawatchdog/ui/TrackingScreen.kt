@@ -38,8 +38,10 @@ fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
     val activeTracking by trackingVM.activeTracking.collectAsState()
     val completedTrackings by trackingVM.completedTrackings.collectAsState()
     var showAppSelector by remember { mutableStateOf(false) }
-    val installedApps = remember {
-        com.datawatchdog.util.InstalledAppsProvider(context).getAllInstalledApps()
+    val installedApps by remember {
+        derivedStateOf {
+            com.datawatchdog.util.InstalledAppsProvider(context).getAllInstalledApps()
+        }
     }
 
     LazyColumn(

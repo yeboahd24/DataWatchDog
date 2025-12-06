@@ -9,20 +9,16 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -70,79 +66,72 @@ class MainActivity : ComponentActivity() {
             val bundleVM = BundleViewModel(this)
             val trackingVM = TrackingViewModel(this)
 
-            Surface(
-                modifier = Modifier.fillMaxSize(),
-                color = Color(0xFF121212)
-            ) {
-                if (!hasUsagePermission) {
-                    PermissionRequestScreen(
-                        onPermissionGranted = {
-                            hasUsagePermission = true
-                        }
-                    )
-                } else {
-                    Column(modifier = Modifier.fillMaxSize()) {
-                        Box(modifier = Modifier.weight(1f)) {
-                            when (currentScreen.intValue) {
-                                0 -> DashboardScreen(dashboardVM)
-                                1 -> AppListScreen(appListVM)
-                                2 -> BundleScreen(bundleVM)
-                                3 -> TrackingScreen(trackingVM, appListVM)
+            MaterialTheme {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    if (!hasUsagePermission) {
+                        PermissionRequestScreen(
+                            onPermissionGranted = {
+                                hasUsagePermission = true
                             }
-                        }
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(Color(0xFF1E1E1E))
-                                .padding(8.dp)
-                        ) {
-                            Button(
-                                onClick = { currentScreen.intValue = 0 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (currentScreen.intValue == 0) Color(0xFF51CF66) else Color(0xFF333333)
-                                )
-                            ) {
-                                Text("Dashboard", fontSize = 12.sp, color = Color.White)
+                        )
+                    } else {
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Box(modifier = Modifier.weight(1f)) {
+                                when (currentScreen.intValue) {
+                                    0 -> DashboardScreen(dashboardVM)
+                                    1 -> AppListScreen(appListVM)
+                                    2 -> BundleScreen(bundleVM)
+                                    3 -> TrackingScreen(trackingVM, appListVM)
+                                }
                             }
 
-                            Button(
-                                onClick = { currentScreen.intValue = 1 },
+                            // Modern bottom navigation
+                            Card(
                                 modifier = Modifier
-                                    .weight(1f)
-                                    .padding(4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (currentScreen.intValue == 1) Color(0xFF51CF66) else Color(0xFF333333)
-                                )
+                                    .fillMaxWidth()
+                                    .shadow(8.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surface
+                                ),
+                                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)
                             ) {
-                                Text("Apps", fontSize = 12.sp, color = Color.White)
-                            }
-
-                            Button(
-                                onClick = { currentScreen.intValue = 2 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (currentScreen.intValue == 2) Color(0xFF51CF66) else Color(0xFF333333)
-                                )
-                            ) {
-                                Text("Bundle", fontSize = 11.sp, color = Color.White)
-                            }
-
-                            Button(
-                                onClick = { currentScreen.intValue = 3 },
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .padding(4.dp),
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (currentScreen.intValue == 3) Color(0xFF51CF66) else Color(0xFF333333)
-                                )
-                            ) {
-                                Text("Track", fontSize = 11.sp, color = Color.White)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 12.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly
+                                ) {
+                                    NavigationItem(
+                                        icon = Icons.Default.Dashboard,
+                                        label = "Dashboard",
+                                        isSelected = currentScreen.intValue == 0,
+                                        onClick = { currentScreen.intValue = 0 }
+                                    )
+                                    
+                                    NavigationItem(
+                                        icon = Icons.Default.Apps,
+                                        label = "Apps",
+                                        isSelected = currentScreen.intValue == 1,
+                                        onClick = { currentScreen.intValue = 1 }
+                                    )
+                                    
+                                    NavigationItem(
+                                        icon = Icons.Default.DataUsage,
+                                        label = "Bundle",
+                                        isSelected = currentScreen.intValue == 2,
+                                        onClick = { currentScreen.intValue = 2 }
+                                    )
+                                    
+                                    NavigationItem(
+                                        icon = Icons.Default.Timeline,
+                                        label = "Track",
+                                        isSelected = currentScreen.intValue == 3,
+                                        onClick = { currentScreen.intValue = 3 }
+                                    )
+                                }
                             }
                         }
                     }
@@ -184,6 +173,49 @@ class MainActivity : ComponentActivity() {
             mode == AppOpsManager.MODE_ALLOWED
         } catch (e: Exception) {
             false
+        }
+    }
+}
+
+@Composable
+fun NavigationItem(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    Surface(
+        modifier = Modifier
+            .padding(4.dp),
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) 
+            MaterialTheme.colorScheme.primaryContainer 
+        else 
+            Color.Transparent
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                modifier = Modifier.size(24.dp),
+                tint = if (isSelected) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) 
+                    MaterialTheme.colorScheme.primary 
+                else 
+                    MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
