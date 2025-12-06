@@ -220,12 +220,10 @@ fun InstalledAppSelectorDialog(
     onSelect: (String, String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredApps = remember(apps, searchQuery) {
-        if (searchQuery.isEmpty()) {
-            apps
-        } else {
-            apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
-        }
+    val filteredApps = if (searchQuery.isEmpty()) {
+        apps
+    } else {
+        apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
     }
 
     AlertDialog(

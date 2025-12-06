@@ -15,23 +15,28 @@ class InstalledAppsProvider(private val context: Context) {
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         
         return packages
-            .filter { it.flags and ApplicationInfo.FLAG_SYSTEM == 0 || isCommonApp(it.packageName) }
+            .filter { appInfo ->
+                val isSystemApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
+                val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
+                isUserApp || isCommonApp(appInfo.packageName)
+            }
             .map { appInfo ->
                 InstalledApp(
                     packageName = appInfo.packageName,
                     appName = packageManager.getApplicationLabel(appInfo).toString()
                 )
             }
-            .sortedBy { it.appName }
+            .distinctBy { it.packageName }
+            .sortedBy { it.appName.lowercase() }
     }
     
     private fun isCommonApp(packageName: String): Boolean {
         val commonApps = listOf(
-            "com.whatsapp", "com.facebook", "com.instagram", "com.twitter",
-            "com.google.android.youtube", "com.netflix", "com.spotify.music",
-            "com.snapchat.android", "com.telegram.messenger", "com.tiktok",
-            "com.chrome.beta", "com.android.chrome", "com.opera.browser"
+            "whatsapp", "facebook", "instagram", "twitter", "messenger",
+            "youtube", "netflix", "spotify", "snapchat", "telegram",
+            "tiktok", "chrome", "opera", "firefox", "brave",
+            "gmail", "maps", "drive", "photos", "calendar"
         )
-        return commonApps.any { packageName.contains(it) }
+        return commonApps.any { packageName.lowercase().contains(it) }
     }
 }
