@@ -303,7 +303,7 @@ class DrainDetector(private val context: Context? = null) {
         val mean = recentUsage.average()
         val coefficientOfVariation = if (mean > 0) variance / mean else 1.0
         
-        return maxOf(0.1, 1.0 - coefficientOfVariation)
+        return kotlin.math.max(0.1, 1.0 - coefficientOfVariation)
     }
     
     private fun formatBytes(bytes: Long): String {
