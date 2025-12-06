@@ -4,12 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.datawatchdog.util.DataUsageTracker
@@ -28,45 +33,155 @@ fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
         com.datawatchdog.util.InstalledAppsProvider(context).getAllInstalledApps()
     }
 
-    Column(
+    LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFF121212))
-            .padding(16.dp)
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Text(
-            "Track App Usage",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        activeTracking?.let { tracking ->
-            ActiveTrackingCard(tracking, onStop = { trackingVM.stopTracking() })
-        } ?: run {
-            Button(
-                onClick = { showAppSelector = true },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF51CF66))
+        item {
+            // Header section with title and refresh button
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Start Tracking App")
+                Text(
+                    text = "App Tracking",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                IconButton(
+                    onClick = { trackingVM.refresh() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Refresh",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        item {
+            // Active tracking or start button section
+            if (activeTracking != null) {
+                ActiveTrackingCard(
+                    tracking = activeTracking!!,
+                    onStop = { trackingVM.stopTracking() }
+                )
+            } else {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .shadow(4.dp, RoundedCornerShape(16.dp)),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(24.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "No Active Tracking",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "Start monitoring data usage for any app",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { showAppSelector = true },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(48.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary
+                            ),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = null,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Start Tracking App",
+                                style = MaterialTheme.typography.labelLarge
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
-        Text(
-            "Tracking History",
-            fontSize = 18.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 12.dp)
-        )
+        if (completedTrackings.isNotEmpty()) {
+            item {
+                // History section header
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.History,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Tracking History",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer
+                    ) {
+                        Text(
+                            text = "${completedTrackings.size}",
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onPrimaryContainer
+                        )
+                    }
+                }
+            }
 
-        LazyColumn {
             items(completedTrackings) { tracking ->
-                CompletedTrackingCard(tracking, onDelete = { trackingVM.deleteTracking(tracking.id) })
+                CompletedTrackingCard(
+                    tracking = tracking,
+                    onDelete = { trackingVM.deleteTracking(tracking.id) }
+                )
             }
         }
     }
@@ -86,49 +201,122 @@ fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
 @Composable
 fun ActiveTrackingCard(tracking: com.datawatchdog.db.AppTrackingEntity, onStop: () -> Unit) {
     Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E3A1E))
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(6.dp, RoundedCornerShape(16.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer
+        ),
+        shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(20.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    "🔴 Tracking: ${tracking.appName}",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF51CF66)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(8.dp)
+                    ) {}
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = tracking.appName,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                ) {
+                    Text(
+                        text = "ACTIVE",
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
             }
 
+            Spacer(modifier = Modifier.height(16.dp))
+
             val duration = (System.currentTimeMillis() - tracking.startTime) / 1000
-            val minutes = duration / 60
+            val hours = duration / 3600
+            val minutes = (duration % 3600) / 60
             val seconds = duration % 60
+            
+            val durationText = if (hours > 0) {
+                "${hours}h ${minutes}m ${seconds}s"
+            } else {
+                "${minutes}m ${seconds}s"
+            }
 
-            Text(
-                "Duration: ${minutes}m ${seconds}s",
-                fontSize = 14.sp,
-                color = Color.White,
-                modifier = Modifier.padding(top = 8.dp)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Duration",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = durationText,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+                
+                Column {
+                    Text(
+                        text = "Started",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    )
+                    Text(
+                        text = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(tracking.startTime)),
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
 
-            Text(
-                "Started: ${SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date(tracking.startTime))}",
-                fontSize = 12.sp,
-                color = Color(0xFFBBBBBB),
-                modifier = Modifier.padding(top = 4.dp)
-            )
+            Spacer(modifier = Modifier.height(20.dp))
 
             Button(
                 onClick = onStop,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 16.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFF6B6B))
+                    .height(48.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                ),
+                shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Stop Tracking")
+                Icon(
+                    imageVector = Icons.Default.Stop,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Stop Tracking",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    )
+                )
             }
         }
     }
@@ -139,77 +327,119 @@ fun CompletedTrackingCard(tracking: com.datawatchdog.db.AppTrackingEntity, onDel
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+            .shadow(2.dp, RoundedCornerShape(12.dp)),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceVariant
+        ),
+        shape = RoundedCornerShape(12.dp)
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    tracking.appName,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-                IconButton(onClick = onDelete, modifier = Modifier.size(24.dp)) {
-                    Text("🗑️", fontSize = 16.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Surface(
+                        shape = RoundedCornerShape(6.dp),
+                        color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                        modifier = Modifier.size(6.dp)
+                    ) {}
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = tracking.appName,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Medium
+                        ),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                ) {
+                    IconButton(
+                        onClick = onDelete,
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Delete,
+                            contentDescription = "Delete",
+                            modifier = Modifier.size(16.dp),
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             val duration = ((tracking.endTime ?: 0) - tracking.startTime) / 1000
-            val minutes = duration / 60
-
-            Text(
-                "Duration: ${minutes} minutes",
-                fontSize = 12.sp,
-                color = Color(0xFFBBBBBB),
-                modifier = Modifier.padding(top = 4.dp)
-            )
-
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text("Mobile", fontSize = 11.sp, color = Color(0xFFBBBBBB))
-                    Text(
-                        String.format("%.2f MB", tracking.getTotalMobileUsed() / (1024.0 * 1024.0)),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-                Column {
-                    Text("WiFi", fontSize = 11.sp, color = Color(0xFFBBBBBB))
-                    Text(
-                        String.format("%.2f MB", tracking.getTotalWifiUsed() / (1024.0 * 1024.0)),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                }
-                Column {
-                    Text("Total", fontSize = 11.sp, color = Color(0xFFBBBBBB))
-                    Text(
-                        String.format("%.2f MB", tracking.getTotalUsed() / (1024.0 * 1024.0)),
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF51CF66)
-                    )
-                }
+            val hours = duration / 3600
+            val minutes = (duration % 3600) / 60
+            val durationText = if (hours > 0) {
+                "${hours}h ${minutes}m"
+            } else {
+                "${minutes}m"
             }
 
             Text(
-                SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(tracking.startTime)),
-                fontSize = 11.sp,
-                color = Color(0xFF888888),
-                modifier = Modifier.padding(top = 8.dp)
+                text = "Duration: $durationText",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                DataUsageColumn(
+                    label = "Mobile",
+                    value = tracking.getTotalMobileUsed() / (1024.0 * 1024.0),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                DataUsageColumn(
+                    label = "WiFi", 
+                    value = tracking.getTotalWifiUsed() / (1024.0 * 1024.0),
+                    color = MaterialTheme.colorScheme.secondary
+                )
+                DataUsageColumn(
+                    label = "Total",
+                    value = tracking.getTotalUsed() / (1024.0 * 1024.0),
+                    color = MaterialTheme.colorScheme.tertiary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = SimpleDateFormat("MMM dd, yyyy • HH:mm", Locale.getDefault()).format(Date(tracking.startTime)),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
             )
         }
+    }
+}
+
+@Composable
+fun DataUsageColumn(label: String, value: Double, color: androidx.compose.ui.graphics.Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(
+            text = String.format("%.1f MB", value),
+            style = MaterialTheme.typography.labelMedium.copy(
+                fontWeight = FontWeight.Medium
+            ),
+            color = color
+        )
     }
 }
 
@@ -235,32 +465,105 @@ fun InstalledAppSelectorDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select App to Track (${apps.size} apps)") },
+        title = {
+            Text(
+                text = "Select App to Track",
+                style = MaterialTheme.typography.headlineSmall.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
         text = {
             Column {
                 OutlinedTextField(
                     value = searchQuery,
                     onValueChange = { searchQuery = it },
                     label = { Text("Search apps...") },
-                    placeholder = { Text("Type app name...") },
+                    placeholder = { Text("YouTube, Facebook, WhatsApp...") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Search,
+                            contentDescription = "Search"
+                        )
+                    },
+                    trailingIcon = {
+                        if (searchQuery.isNotEmpty()) {
+                            IconButton(onClick = { searchQuery = "" }) {
+                                Icon(
+                                    imageVector = Icons.Default.Clear,
+                                    contentDescription = "Clear"
+                                )
+                            }
+                        }
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 )
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Found ${filteredApps.size} of ${apps.size} apps",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    
+                    val userApps = filteredApps.filter { it.isUserInstalled }
+                    if (userApps.isNotEmpty()) {
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer
+                        ) {
+                            Text(
+                                text = "${userApps.size} user apps",
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer
+                            )
+                        }
+                    }
+                }
+                
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                Text(
-                    "Found: ${filteredApps.size} apps",
-                    fontSize = 12.sp,
-                    color = Color.Gray,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
                 if (filteredApps.isEmpty()) {
-                    Text(
-                        "No apps found for \"$searchQuery\"",
-                        modifier = Modifier.padding(16.dp),
-                        color = Color.Gray
-                    )
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.SearchOff,
+                                contentDescription = null,
+                                modifier = Modifier.size(48.dp),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "No apps found",
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = "Try different search terms",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
                 } else {
                     val userApps = filteredApps.filter { it.isUserInstalled }
                     val systemApps = filteredApps.filter { !it.isUserInstalled }
@@ -268,46 +571,120 @@ fun InstalledAppSelectorDialog(
                     LazyColumn(modifier = Modifier.height(400.dp)) {
                         if (userApps.isNotEmpty()) {
                             item {
-                                Text(
-                                    "📱 Your Apps (${userApps.size})",
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(8.dp),
-                                    color = Color(0xFF51CF66)
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Apps,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "User Apps (${userApps.size})",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                             items(userApps) { app ->
-                                TextButton(
-                                    onClick = { onSelect(app.packageName, app.appName) },
-                                    modifier = Modifier.fillMaxWidth()
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surface
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text(
-                                        app.appName,
+                                    TextButton(
+                                        onClick = { onSelect(app.packageName, app.appName) },
                                         modifier = Modifier.fillMaxWidth(),
-                                        color = Color.Black
-                                    )
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(4.dp)
+                                            ) {}
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = app.appName,
+                                                modifier = Modifier.weight(1f),
+                                                textAlign = TextAlign.Start,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
                         
-                        if (systemApps.isNotEmpty()) {
+                        if (systemApps.isNotEmpty() && searchQuery.isNotEmpty()) {
                             item {
-                                Text(
-                                    "⚙️ System Apps (${systemApps.size})",
-                                    fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(8.dp),
-                                    color = Color.Gray
-                                )
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    modifier = Modifier.padding(vertical = 8.dp, top = 16.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.outline,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = "System Apps (${systemApps.size})",
+                                        style = MaterialTheme.typography.titleSmall.copy(
+                                            fontWeight = FontWeight.SemiBold
+                                        ),
+                                        color = MaterialTheme.colorScheme.outline
+                                    )
+                                }
                             }
                             items(systemApps) { app ->
-                                TextButton(
-                                    onClick = { onSelect(app.packageName, app.appName) },
-                                    modifier = Modifier.fillMaxWidth()
+                                Card(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 2.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                    ),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Text(
-                                        app.appName,
+                                    TextButton(
+                                        onClick = { onSelect(app.packageName, app.appName) },
                                         modifier = Modifier.fillMaxWidth(),
-                                        color = Color.Gray
-                                    )
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Surface(
+                                                shape = RoundedCornerShape(4.dp),
+                                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
+                                                modifier = Modifier.size(4.dp)
+                                            ) {}
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = app.appName,
+                                                modifier = Modifier.weight(1f),
+                                                textAlign = TextAlign.Start,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -317,9 +694,15 @@ fun InstalledAppSelectorDialog(
         },
         confirmButton = {},
         dismissButton = {
-            TextButton(onClick = onDismiss) {
+            TextButton(
+                onClick = onDismiss,
+                colors = ButtonDefaults.textButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
                 Text("Cancel")
             }
-        }
+        },
+        shape = RoundedCornerShape(16.dp)
     )
 }
