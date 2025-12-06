@@ -220,33 +220,47 @@ fun InstalledAppSelectorDialog(
     onSelect: (String, String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
-    val filteredApps = if (searchQuery.isEmpty()) {
-        apps
-    } else {
-        apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
-    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select App to Track") },
+        title = { Text("Select App to Track (${apps.size} apps)") },
         text = {
             Column {
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { searchQuery = it },
+                    onValueChange = { newValue -> 
+                        searchQuery = newValue
+                    },
                     label = { Text("Search apps...") },
-                    placeholder = { Text("WhatsApp, YouTube, etc.") },
+                    placeholder = { Text("Type app name...") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true
                 )
                 Spacer(modifier = Modifier.height(8.dp))
-                LazyColumn(modifier = Modifier.height(400.dp)) {
-                    items(filteredApps) { app ->
-                        TextButton(
-                            onClick = { onSelect(app.packageName, app.appName) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(app.appName, modifier = Modifier.fillMaxWidth())
+                
+                val filteredApps = apps.filter { app ->
+                    searchQuery.isEmpty() || app.appName.contains(searchQuery, ignoreCase = true)
+                }
+                
+                if (filteredApps.isEmpty()) {
+                    Text(
+                        "No apps found for \"$searchQuery\"",
+                        modifier = Modifier.padding(16.dp),
+                        color = Color.Gray
+                    )
+                } else {
+                    LazyColumn(modifier = Modifier.height(400.dp)) {
+                        items(filteredApps) { app ->
+                            TextButton(
+                                onClick = { onSelect(app.packageName, app.appName) },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    app.appName,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    color = Color.Black
+                                )
+                            }
                         }
                     }
                 }
