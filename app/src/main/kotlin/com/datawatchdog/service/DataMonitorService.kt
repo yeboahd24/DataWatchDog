@@ -133,6 +133,7 @@ data class AppSnapshot(
                 }
 
                 val bundleEntity = com.datawatchdog.db.BundleEntity(
+                    id = 1,
                     expiryDate = bundle.expiryDate,
                     totalMB = bundle.totalMB,
                     usedMB = bundle.usedMB,
