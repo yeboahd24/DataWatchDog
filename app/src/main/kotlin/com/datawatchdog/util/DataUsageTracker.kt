@@ -34,27 +34,22 @@ class DataUsageTracker(private val context: Context) {
 
         apps.forEach { appInfo ->
             val uid = appInfo.uid
+            if (uid < 10000) return@forEach // Skip system UIDs
 
-            // Get total data usage since boot (TrafficStats doesn't separate mobile/WiFi)
             val totalRx = TrafficStats.getUidRxBytes(uid)
             val totalTx = TrafficStats.getUidTxBytes(uid)
 
-            // TrafficStats returns -1 if not supported or no data
             if (totalRx < 0 || totalTx < 0) return@forEach
-
-            // Skip if no usage
             if (totalRx + totalTx == 0L) return@forEach
 
-            // For now, we'll treat all traffic as "mobile" since TrafficStats doesn't separate
-            // In a future update, we can add logic to estimate mobile vs WiFi
             results.add(
                 AppDataUsage(
                     packageName = appInfo.packageName,
                     appName = appInfo.loadLabel(packageManager).toString(),
                     uid = uid,
-                    mobileRx = totalRx, // Treating all as mobile for simplicity
+                    mobileRx = totalRx,
                     mobileTx = totalTx,
-                    wifiRx = 0L, // Could be enhanced later
+                    wifiRx = 0L,
                     wifiTx = 0L
                 )
             )

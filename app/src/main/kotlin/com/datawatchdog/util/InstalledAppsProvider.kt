@@ -17,9 +17,12 @@ class InstalledAppsProvider(private val context: Context) {
         
         val apps = packages.mapNotNull { appInfo ->
             try {
-                val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                                (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
-                                packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
+                val isSystemApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isUpdatedSystemApp = (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0
+                val hasLaunchIntent = packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
+                
+                // Mark as user app if: not system, OR updated system app, OR has launcher
+                val isUserApp = !isSystemApp || isUpdatedSystemApp || hasLaunchIntent
                 
                 InstalledApp(
                     packageName = appInfo.packageName,
