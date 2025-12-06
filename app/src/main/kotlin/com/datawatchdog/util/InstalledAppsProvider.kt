@@ -6,7 +6,8 @@ import android.content.pm.PackageManager
 
 data class InstalledApp(
     val packageName: String,
-    val appName: String
+    val appName: String,
+    val isUserInstalled: Boolean = false
 )
 
 class InstalledAppsProvider(private val context: Context) {
@@ -14,28 +15,26 @@ class InstalledAppsProvider(private val context: Context) {
         val packageManager = context.packageManager
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         
-        return packages
-            .mapNotNull { appInfo ->
-                try {
-                    InstalledApp(
-                        packageName = appInfo.packageName,
-                        appName = packageManager.getApplicationLabel(appInfo).toString()
-                    )
-                } catch (e: Exception) {
-                    null
-                }
+        val allApps = packages.mapNotNull { appInfo ->
+            try {
+                val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
+                val isUpdatedSystemApp = appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+                InstalledApp(
+                    packageName = appInfo.packageName,
+                    appName = packageManager.getApplicationLabel(appInfo).toString(),
+                    isUserInstalled = isUserApp || isUpdatedSystemApp
+                )
+            } catch (e: Exception) {
+                null
             }
-            .distinctBy { it.packageName }
-            .sortedBy { it.appName.lowercase() }
+        }.distinctBy { it.packageName }
+        
+        // Sort: user apps first, then by name
+        return allApps.sortedWith(
+            compareByDescending<InstalledApp> { it.isUserInstalled }
+                .thenBy { it.appName.lowercase() }
+        )
     }
     
-    private fun isCommonApp(packageName: String): Boolean {
-        val commonApps = listOf(
-            "whatsapp", "facebook", "instagram", "twitter", "messenger",
-            "youtube", "netflix", "spotify", "snapchat", "telegram",
-            "tiktok", "chrome", "opera", "firefox", "brave",
-            "gmail", "maps", "drive", "photos", "calendar"
-        )
-        return commonApps.any { packageName.lowercase().contains(it) }
-    }
+
 }

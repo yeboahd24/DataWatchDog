@@ -255,11 +255,21 @@ fun InstalledAppSelectorDialog(
                                 onClick = { onSelect(app.packageName, app.appName) },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
-                                Text(
-                                    app.appName,
+                                Row(
                                     modifier = Modifier.fillMaxWidth(),
-                                    color = Color.Black
-                                )
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        app.appName,
+                                        color = Color.Black
+                                    )
+                                    if (app.isUserInstalled) {
+                                        Text(
+                                            "📱",
+                                            fontSize = 12.sp
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
