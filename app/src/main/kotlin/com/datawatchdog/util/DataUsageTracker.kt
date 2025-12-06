@@ -4,6 +4,7 @@ import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.net.NetworkStats
 import android.net.NetworkStatsManager
 import android.os.Build
@@ -37,7 +38,7 @@ class DataUsageTracker(private val context: Context) {
         try {
             // Mobile data
             val mobileStats = networkStatsManager.queryDetailsForUid(
-                NetworkStats.TRANSPORT_CELLULAR,
+                ConnectivityManager.TYPE_MOBILE,
                 null,
                 startTime,
                 now,
@@ -48,7 +49,7 @@ class DataUsageTracker(private val context: Context) {
                 val bucket = NetworkStats.Bucket()
                 mobileStats.getNextBucket(bucket)
                 val uid = bucket.uid
-                val packageName = getPackageNameForUid(uid) ?: return@getNextBucket
+                val packageName = getPackageNameForUid(uid) ?: continue
 
                 val existing = usageMap[packageName] ?: AppDataUsage(
                     packageName = packageName,
@@ -68,7 +69,7 @@ class DataUsageTracker(private val context: Context) {
 
             // WiFi data
             val wifiStats = networkStatsManager.queryDetailsForUid(
-                NetworkStats.TRANSPORT_WIFI,
+                ConnectivityManager.TYPE_WIFI,
                 null,
                 startTime,
                 now,
@@ -79,7 +80,7 @@ class DataUsageTracker(private val context: Context) {
                 val bucket = NetworkStats.Bucket()
                 wifiStats.getNextBucket(bucket)
                 val uid = bucket.uid
-                val packageName = getPackageNameForUid(uid) ?: return@getNextBucket
+                val packageName = getPackageNameForUid(uid) ?: continue
 
                 val existing = usageMap[packageName] ?: AppDataUsage(
                     packageName = packageName,
