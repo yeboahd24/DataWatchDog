@@ -17,6 +17,16 @@ data class BundleInfo(
 
 class SmsParser(private val context: Context) {
 
+    data class DataUsageInfo(
+        val usedData: Double,
+        val totalData: Double,
+        val unit: String,
+        val remainingData: Double = totalData - usedData,
+        val percentage: Double = if (totalData > 0) (usedData / totalData) * 100 else 0.0,
+        val carrier: String? = null,
+        val validUntil: String? = null
+    )
+
     fun parseBundleFromSms(): BundleInfo? {
         val cursor = context.contentResolver.query(
             Telephony.Sms.CONTENT_URI,
@@ -51,14 +61,159 @@ class SmsParser(private val context: Context) {
         return bundleInfo
     }
 
+    fun parseDataUsageSms(smsBody: String, sender: String): DataUsageInfo? {
+        return try {
+            val normalizedBody = smsBody.lowercase().trim()
+            val normalizedSender = sender.lowercase()
+            
+            // Try existing African carrier parser first
+            val bundleInfo = parseBundleFromSmsBody(normalizedBody)
+            if (bundleInfo != null) {
+                return DataUsageInfo(
+                    usedData = bundleInfo.usedMB.toDouble() / 1024.0,
+                    totalData = bundleInfo.totalMB.toDouble() / 1024.0,
+                    unit = "GB",
+                    carrier = bundleInfo.provider
+                )
+            }
+            
+            // Try international carrier patterns
+            parseInternationalCarriers(normalizedBody, normalizedSender)
+                ?: parseGenericDataUsage(normalizedBody)
+        } catch (e: Exception) {
+            println("SmsParser: Error parsing SMS: ${e.message}")
+            null
+        }
+    }
+
+    private fun parseBundleFromSmsBody(text: String): BundleInfo? {
+        val provider = detectProvider(text) ?: return null
+        val expiryDate = parseExpiryDate(text) ?: return null
+        val totalMB = parseTotalMB(text)
+        val usedMB = parseUsedMB(text)
+        
+        if (totalMB > 0) {
+            return BundleInfo(
+                provider = provider,
+                expiryDate = expiryDate,
+                totalMB = totalMB,
+                usedMB = usedMB
+            )
+        }
+        return null
+    }
+
     private fun detectProvider(text: String): String? {
         return when {
             text.contains("MTN", ignoreCase = true) -> "MTN"
             text.contains("Vodafone", ignoreCase = true) -> "Vodafone"
             text.contains("AirtelTigo", ignoreCase = true) -> "AirtelTigo"
             text.contains("Airtel", ignoreCase = true) -> "Airtel"
+            text.contains("Glo", ignoreCase = true) -> "Glo"
+            text.contains("9mobile", ignoreCase = true) -> "9mobile"
+            text.contains("Safaricom", ignoreCase = true) -> "Safaricom"
             else -> null
         }
+    }
+
+    private fun parseInternationalCarriers(text: String, sender: String): DataUsageInfo? {
+        return when {
+            // US carriers
+            sender.contains("verizon") || sender.contains("vzw") -> parseVerizon(text)
+            sender.contains("att") || sender.contains("at&t") -> parseATT(text)
+            sender.contains("tmobile") || sender.contains("t-mobile") -> parseTMobile(text)
+            sender.contains("sprint") -> parseSprint(text)
+            
+            // Generic short code patterns
+            sender.matches(Regex("""\d{4,6}""")) -> parseGenericDataUsage(text)
+            
+            else -> null
+        }
+    }
+
+    private fun parseVerizon(text: String): DataUsageInfo? {
+        val patterns = listOf(
+            Regex("""you'?ve used (\d+\.?\d*)\s*(gb|mb) of your (\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""(\d+\.?\d*)\s*(gb|mb) used of (\d+\.?\d*)\s*(gb|mb) plan""")
+        )
+        return parseWithPatterns(patterns, text, "Verizon")
+    }
+    
+    private fun parseATT(text: String): DataUsageInfo? {
+        val patterns = listOf(
+            Regex("""you have used (\d+\.?\d*)\s*(gb|mb) of your (\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""data usage: (\d+\.?\d*)\s*(gb|mb)/(\d+\.?\d*)\s*(gb|mb)""")
+        )
+        return parseWithPatterns(patterns, text, "AT&T")
+    }
+    
+    private fun parseTMobile(text: String): DataUsageInfo? {
+        val patterns = listOf(
+            Regex("""you'?ve used (\d+\.?\d*)\s*(gb|mb) of (\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""usage alert: (\d+\.?\d*)\s*(gb|mb)/(\d+\.?\d*)\s*(gb|mb)""")
+        )
+        return parseWithPatterns(patterns, text, "T-Mobile")
+    }
+    
+    private fun parseSprint(text: String): DataUsageInfo? {
+        val patterns = listOf(
+            Regex("""you have used (\d+\.?\d*)\s*(gb|mb) of (\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""(\d+\.?\d*)\s*(gb|mb) of your (\d+\.?\d*)\s*(gb|mb) allowance""")
+        )
+        return parseWithPatterns(patterns, text, "Sprint")
+    }
+
+    private fun parseGenericDataUsage(text: String): DataUsageInfo? {
+        val patterns = listOf(
+            Regex("""(\d+\.?\d*)\s*(gb|mb).*?(\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""used:?\s*(\d+\.?\d*)\s*(gb|mb).*?total:?\s*(\d+\.?\d*)\s*(gb|mb)"""),
+            Regex("""(\d+\.?\d*)\s*(gb|mb)\s*(?:of|out of|/)\s*(\d+\.?\d*)\s*(gb|mb)""")
+        )
+        return parseWithPatterns(patterns, text, null)
+    }
+
+    private fun parseWithPatterns(patterns: List<Regex>, text: String, carrier: String?): DataUsageInfo? {
+        for (pattern in patterns) {
+            val match = pattern.find(text)
+            if (match != null) {
+                return try {
+                    val groups = match.groupValues
+                    val used = groups[1].toDoubleOrNull() ?: continue
+                    val usedUnit = groups[2].lowercase()
+                    val total = groups[3].toDoubleOrNull() ?: continue
+                    val totalUnit = groups[4].lowercase()
+                    
+                    // Normalize to GB
+                    val normalizedUsed = if (usedUnit == "mb") used / 1024.0 else used
+                    val normalizedTotal = if (totalUnit == "mb") total / 1024.0 else total
+                    
+                    DataUsageInfo(
+                        usedData = normalizedUsed,
+                        totalData = normalizedTotal,
+                        unit = "GB",
+                        carrier = carrier
+                    )
+                } catch (e: Exception) {
+                    continue
+                }
+            }
+        }
+        return null
+    }
+
+    fun isDataUsageSms(smsBody: String, sender: String): Boolean {
+        val normalizedBody = smsBody.lowercase()
+        val normalizedSender = sender.lowercase()
+        
+        val dataKeywords = listOf("data", "usage", "allowance", "plan", "gb", "mb", "bundle")
+        val carrierKeywords = listOf("mtn", "vodafone", "airteltigo", "airtel", "glo", "9mobile", 
+                                   "safaricom", "verizon", "vzw", "att", "at&t", "tmobile", "t-mobile", "sprint")
+        
+        val hasDataKeywords = dataKeywords.any { normalizedBody.contains(it) }
+        val isFromCarrier = carrierKeywords.any { normalizedSender.contains(it) } 
+            || sender.matches(Regex("""\d{4,6}""")) // Short codes
+            
+        return hasDataKeywords && isFromCarrier
     }
 
     private fun parseExpiryDate(text: String): Long? {
