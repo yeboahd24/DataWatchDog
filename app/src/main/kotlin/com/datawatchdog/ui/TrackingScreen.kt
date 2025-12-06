@@ -220,6 +220,18 @@ fun InstalledAppSelectorDialog(
     onSelect: (String, String) -> Unit
 ) {
     var searchQuery by remember { mutableStateOf("") }
+    val filteredApps by remember(searchQuery) {
+        derivedStateOf {
+            if (searchQuery.isEmpty()) {
+                apps
+            } else {
+                apps.filter { app ->
+                    app.appName.contains(searchQuery, ignoreCase = true) ||
+                    app.packageName.contains(searchQuery, ignoreCase = true)
+                }
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -228,9 +240,7 @@ fun InstalledAppSelectorDialog(
             Column {
                 OutlinedTextField(
                     value = searchQuery,
-                    onValueChange = { newValue -> 
-                        searchQuery = newValue
-                    },
+                    onValueChange = { searchQuery = it },
                     label = { Text("Search apps...") },
                     placeholder = { Text("Type app name...") },
                     modifier = Modifier.fillMaxWidth(),
@@ -238,9 +248,12 @@ fun InstalledAppSelectorDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                val filteredApps = apps.filter { app ->
-                    searchQuery.isEmpty() || app.appName.contains(searchQuery, ignoreCase = true)
-                }
+                Text(
+                    "Found: ${filteredApps.size} apps",
+                    fontSize = 12.sp,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 
                 if (filteredApps.isEmpty()) {
                     Text(
