@@ -153,6 +153,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @Suppress("DEPRECATION")
     private fun hasUsageStatsPermission(): Boolean {
         return try {
             val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
