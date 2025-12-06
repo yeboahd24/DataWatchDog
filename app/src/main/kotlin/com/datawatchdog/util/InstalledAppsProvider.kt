@@ -17,17 +17,28 @@ class InstalledAppsProvider(private val context: Context) {
         
         val allApps = packages.mapNotNull { appInfo ->
             try {
-                val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
-                val isUpdatedSystemApp = appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
-                val isLaunchable = packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
+                val packageName = appInfo.packageName
+                val appName = packageManager.getApplicationLabel(appInfo).toString()
                 
-                // Enhanced logic to better identify user-installed apps
-                val isUserInstalled = isUserApp || isUpdatedSystemApp || 
-                    (isLaunchable && !isSystemPackage(appInfo.packageName))
+                // Check if it's a user app (not a system app)
+                val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
+                
+                // Check if it's an updated system app (like Chrome, YouTube)
+                val isUpdatedSystemApp = appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+                
+                // Check if the app has a launcher intent (user-facing apps)
+                val hasLauncherIntent = packageManager.getLaunchIntentForPackage(packageName) != null
+                
+                // Popular apps that should always be considered user apps
+                val isPopularApp = isPopularUserApp(packageName)
+                
+                // Simplified logic: if it's any of these, consider it a user app
+                val isUserInstalled = isUserApp || isUpdatedSystemApp || isPopularApp || 
+                    (hasLauncherIntent && !isDefinitelySystemApp(packageName))
                 
                 InstalledApp(
-                    packageName = appInfo.packageName,
-                    appName = packageManager.getApplicationLabel(appInfo).toString(),
+                    packageName = packageName,
+                    appName = appName,
                     isUserInstalled = isUserInstalled
                 )
             } catch (e: Exception) {
@@ -43,50 +54,97 @@ class InstalledAppsProvider(private val context: Context) {
     }
     
     /**
-     * Helper function to identify system packages that shouldn't be considered user apps
-     * even if they have launch intents
+     * Helper function to identify popular user apps that should always be included
      */
-    private fun isSystemPackage(packageName: String): Boolean {
-        val systemPackagePrefixes = listOf(
-            "com.android.",
-            "com.google.android.",
+    private fun isPopularUserApp(packageName: String): Boolean {
+        val popularApps = setOf(
+            // Google Apps that are user apps
+            "com.google.android.youtube",
+            "com.google.android.apps.maps",
+            "com.google.android.gm", // Gmail
+            "com.google.android.apps.photos",
+            "com.google.android.music",
+            "com.google.android.apps.docs", // Google Docs
+            "com.google.android.googlequicksearchbox", // Google app
+            "com.android.chrome",
+            
+            // Social Media
+            "com.facebook.katana", // Facebook
+            "com.facebook.orca", // Messenger
+            "com.whatsapp",
+            "com.instagram.android",
+            "com.twitter.android",
+            "com.snapchat.android",
+            "com.zhiliaoapp.musically", // TikTok
+            "com.linkedin.android",
+            
+            // Entertainment
+            "com.spotify.music",
+            "com.netflix.mediaclient",
+            "com.amazon.mShop.android.shopping", // Amazon
+            "com.ubercab", // Uber
+            
+            // Communication
+            "com.skype.raider", // Skype
+            "us.zoom.videomeetings", // Zoom
+            "com.microsoft.teams",
+            "com.discord",
+            
+            // Banking & Finance
+            "com.paypal.android.p2pmobile",
+            
+            // Games (common ones)
+            "com.king.candycrushsaga",
+            "com.supercell.clashofclans",
+            
+            // Productivity
+            "com.microsoft.office.word",
+            "com.microsoft.office.excel",
+            "com.adobe.reader"
+        )
+        
+        return popularApps.contains(packageName)
+    }
+    
+    /**
+     * Helper function to identify apps that are definitely system apps
+     */
+    private fun isDefinitelySystemApp(packageName: String): Boolean {
+        val systemPackages = setOf(
+            // Core Android system
+            "com.android.systemui",
+            "com.android.settings",
+            "com.android.phone",
+            "com.android.dialer",
+            "com.android.contacts",
+            "com.android.mms",
+            "com.android.launcher",
+            "com.android.launcher3",
+            "com.android.inputmethod",
+            
+            // Google system services
+            "com.google.android.gms",
+            "com.google.android.gsf",
+            "com.google.android.setupwizard",
+            "com.google.android.partnersetup",
+            
+            // Manufacturer system apps (examples)
+            "com.samsung.android.app.spage",
+            "com.samsung.android.bixby",
+            "com.huawei.appmarket",
+            "com.xiaomi.miuisystem"
+        )
+        
+        // System package prefixes that should be excluded
+        val systemPrefixes = listOf(
             "android.",
-            "com.samsung.",
+            "com.android.server",
             "com.qualcomm.",
             "com.mediatek."
         )
         
-        // Exclude these common system packages
-        val excludedPackages = setOf(
-            "com.android.settings",
-            "com.android.systemui",
-            "com.android.phone",
-            "com.android.contacts",
-            "com.android.calendar",
-            "com.android.camera",
-            "com.android.gallery3d"
-        )
-        
-        // Popular user apps that might start with system prefixes but should be included
-        val popularApps = setOf(
-            "com.google.android.youtube",
-            "com.google.android.apps.maps",
-            "com.google.android.gm",
-            "com.google.android.apps.photos",
-            "com.google.android.music",
-            "com.google.android.apps.docs",
-            "com.android.chrome"
-        )
-        
-        if (popularApps.contains(packageName)) {
-            return false // These are user apps despite system prefix
-        }
-        
-        if (excludedPackages.contains(packageName)) {
-            return true
-        }
-        
-        return systemPackagePrefixes.any { packageName.startsWith(it) }
+        return systemPackages.contains(packageName) || 
+               systemPrefixes.any { packageName.startsWith(it) }
     }
 
 }
