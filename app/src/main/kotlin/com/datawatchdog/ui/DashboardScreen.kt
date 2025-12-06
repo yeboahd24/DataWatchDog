@@ -1,24 +1,11 @@
 package com.datawatchdog.ui
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -41,15 +28,27 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
-        Text(
-            "Data Watchdog",
-            fontSize = 28.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color.White,
-            modifier = Modifier.padding(bottom = 24.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Data Watchdog",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color.White
+            )
+            Button(
+                onClick = { viewModel.refresh() },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF51CF66))
+            ) {
+                Text("Refresh", fontSize = 12.sp)
+            }
+        }
 
-        // Usage Summary
+        Spacer(modifier = Modifier.height(24.dp))
+
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -68,7 +67,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             )
         }
 
-        // Bundle Info
         bundleInfo?.let {
             Card(
                 modifier = Modifier
@@ -100,7 +98,6 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             }
         }
 
-        // Top Apps
         Text(
             "Top 5 Apps",
             fontSize = 16.sp,
@@ -109,12 +106,26 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             modifier = Modifier.padding(bottom = 12.dp)
         )
 
-        topApps.forEach { app ->
-            AppUsageRow(
-                appName = app.appName,
-                mobile = String.format("%.2f MB", app.getTotalMobile() / (1024.0 * 1024.0)),
-                wifi = String.format("%.2f MB", app.getTotalWifi() / (1024.0 * 1024.0))
-            )
+        if (topApps.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+            ) {
+                Text(
+                    "No data yet. Use some apps and wait 10 seconds.",
+                    fontSize = 14.sp,
+                    color = Color(0xFFBBBBBB),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        } else {
+            topApps.forEach { app ->
+                AppUsageRow(
+                    appName = app.appName,
+                    mobile = String.format("%.2f MB", app.getTotalMobile() / (1024.0 * 1024.0)),
+                    wifi = String.format("%.2f MB", app.getTotalWifi() / (1024.0 * 1024.0))
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(16.dp))
