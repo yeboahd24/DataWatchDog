@@ -15,7 +15,7 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -315,7 +315,7 @@ fun ActiveTrackingCard(tracking: com.datawatchdog.db.AppTrackingEntity, onStop: 
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Pause,
+                    imageVector = Icons.Default.Close,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
