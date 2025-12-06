@@ -31,9 +31,13 @@ import com.datawatchdog.service.DataMonitorService
 import com.datawatchdog.ui.AppListScreen
 import com.datawatchdog.ui.BundleScreen
 import com.datawatchdog.ui.DashboardScreen
+import com.datawatchdog.ui.PermissionRequestScreen
 import com.datawatchdog.viewmodel.AppListViewModel
 import com.datawatchdog.viewmodel.BundleViewModel
 import com.datawatchdog.viewmodel.DashboardViewModel
+import android.app.AppOpsManager
+import android.content.Context
+import androidx.compose.runtime.*
 
 class MainActivity : ComponentActivity() {
     private val requiredPermissions = arrayOf(
@@ -57,6 +61,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val currentScreen = remember { mutableIntStateOf(0) }
+            var hasUsagePermission by remember { mutableStateOf(hasUsageStatsPermission()) }
             val dashboardVM = DashboardViewModel(this)
             val appListVM = AppListViewModel(this)
             val bundleVM = BundleViewModel(this)
@@ -65,12 +70,19 @@ class MainActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 color = Color(0xFF121212)
             ) {
-                Column(modifier = Modifier.fillMaxSize()) {
-                    when (currentScreen.intValue) {
-                        0 -> DashboardScreen(dashboardVM)
-                        1 -> AppListScreen(appListVM)
-                        2 -> BundleScreen(bundleVM)
-                    }
+                if (!hasUsagePermission) {
+                    PermissionRequestScreen(
+                        onPermissionGranted = {
+                            hasUsagePermission = true
+                        }
+                    )
+                } else {
+                    Column(modifier = Modifier.fillMaxSize()) {
+                        when (currentScreen.intValue) {
+                            0 -> DashboardScreen(dashboardVM)
+                            1 -> AppListScreen(appListVM)
+                            2 -> BundleScreen(bundleVM)
+                        }
 
                     Row(
                         modifier = Modifier
@@ -137,6 +149,20 @@ class MainActivity : ComponentActivity() {
             startForegroundService(intent)
         } else {
             startService(intent)
+        }
+    }
+
+    private fun hasUsageStatsPermission(): Boolean {
+        return try {
+            val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                packageName
+            )
+            mode == AppOpsManager.MODE_ALLOWED
+        } catch (e: Exception) {
+            false
         }
     }
 }
