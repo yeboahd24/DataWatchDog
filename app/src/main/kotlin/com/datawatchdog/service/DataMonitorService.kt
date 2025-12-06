@@ -84,6 +84,7 @@ data class AppSnapshot(
                     val entity = DataUsageEntity(
                         packageName = usage.packageName,
                         appName = usage.appName,
+                        uid = usage.uid,
                         mobileRx = deltaMobileRx,
                         mobileTx = deltaMobileTx,
                         wifiRx = deltaWifiRx,
