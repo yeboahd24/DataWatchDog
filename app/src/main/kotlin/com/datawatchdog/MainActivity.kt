@@ -105,28 +105,28 @@ class MainActivity : ComponentActivity() {
                                     horizontalArrangement = Arrangement.SpaceEvenly
                                 ) {
                                     NavigationItem(
-                                        icon = Icons.Default.Dashboard,
+                                        icon = Icons.Default.Home,
                                         label = "Dashboard",
                                         isSelected = currentScreen.intValue == 0,
                                         onClick = { currentScreen.intValue = 0 }
                                     )
                                     
                                     NavigationItem(
-                                        icon = Icons.Default.Apps,
+                                        icon = Icons.Default.List,
                                         label = "Apps",
                                         isSelected = currentScreen.intValue == 1,
                                         onClick = { currentScreen.intValue = 1 }
                                     )
                                     
                                     NavigationItem(
-                                        icon = Icons.Default.DataUsage,
+                                        icon = Icons.Default.Settings,
                                         label = "Bundle",
                                         isSelected = currentScreen.intValue == 2,
                                         onClick = { currentScreen.intValue = 2 }
                                     )
                                     
                                     NavigationItem(
-                                        icon = Icons.Default.Timeline,
+                                        icon = Icons.Default.PlayArrow,
                                         label = "Track",
                                         isSelected = currentScreen.intValue == 3,
                                         onClick = { currentScreen.intValue = 3 }
