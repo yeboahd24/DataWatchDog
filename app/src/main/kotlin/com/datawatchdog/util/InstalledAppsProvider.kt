@@ -15,16 +15,15 @@ class InstalledAppsProvider(private val context: Context) {
         val packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
         
         return packages
-            .filter { appInfo ->
-                val isSystemApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM != 0
-                val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
-                isUserApp || isCommonApp(appInfo.packageName)
-            }
-            .map { appInfo ->
-                InstalledApp(
-                    packageName = appInfo.packageName,
-                    appName = packageManager.getApplicationLabel(appInfo).toString()
-                )
+            .mapNotNull { appInfo ->
+                try {
+                    InstalledApp(
+                        packageName = appInfo.packageName,
+                        appName = packageManager.getApplicationLabel(appInfo).toString()
+                    )
+                } catch (e: Exception) {
+                    null
+                }
             }
             .distinctBy { it.packageName }
             .sortedBy { it.appName.lowercase() }
