@@ -20,6 +20,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     val totalWifiUsage by viewModel.totalWifiUsage.collectAsState()
     val topApps by viewModel.topApps.collectAsState()
     val bundleInfo by viewModel.bundleInfo.collectAsState()
+    val drainAlerts by viewModel.drainAlerts.collectAsState()
 
     Column(
         modifier = Modifier
@@ -67,6 +68,47 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             )
         }
 
+        if (drainAlerts.isNotEmpty()) {
+            Text(
+                "⚠️ Drain Alerts",
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFFFF6B6B),
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+            drainAlerts.take(3).forEach { alert ->
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF2D1B1B))
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                alert.appName,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFFF6B6B)
+                            )
+                            Text(
+                                "Draining ${String.format("%.2f", alert.drainRate)} MB/min",
+                                fontSize = 12.sp,
+                                color = Color(0xFFFFAAAA),
+                                modifier = Modifier.padding(top = 4.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+        }
+
         bundleInfo?.let {
             Card(
                 modifier = Modifier
@@ -76,7 +118,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text(
-                        "Bundle: ${it.provider}",
+                        "📦 Bundle: ${it.provider}",
                         fontSize = 14.sp,
                         color = Color(0xFFBBBBBB)
                     )

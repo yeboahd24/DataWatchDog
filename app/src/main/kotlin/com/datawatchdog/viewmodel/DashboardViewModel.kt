@@ -28,6 +28,9 @@ class DashboardViewModel(context: Context) : ViewModel() {
     private val _bundleInfo = MutableStateFlow<BundleEntity?>(null)
     val bundleInfo: StateFlow<BundleEntity?> = _bundleInfo
 
+    private val _drainAlerts = MutableStateFlow<List<com.datawatchdog.db.DrainAlertEntity>>(emptyList())
+    val drainAlerts: StateFlow<List<com.datawatchdog.db.DrainAlertEntity>> = _drainAlerts
+
     init {
         loadData()
         startAutoRefresh()
@@ -49,6 +52,11 @@ class DashboardViewModel(context: Context) : ViewModel() {
                 // Get bundle info
                 val bundle = db.bundleDao().getBundle()
                 _bundleInfo.value = bundle
+
+                // Get recent drain alerts (last hour)
+                val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000)
+                val alerts = db.drainAlertDao().getAlertsAfter(oneHourAgo)
+                _drainAlerts.value = alerts
             } catch (e: Exception) {
                 e.printStackTrace()
             }

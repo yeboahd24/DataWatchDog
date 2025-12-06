@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -78,10 +79,12 @@ class MainActivity : ComponentActivity() {
                     )
                 } else {
                     Column(modifier = Modifier.fillMaxSize()) {
-                        when (currentScreen.intValue) {
-                            0 -> DashboardScreen(dashboardVM)
-                            1 -> AppListScreen(appListVM)
-                            2 -> BundleScreen(bundleVM)
+                        Box(modifier = Modifier.weight(1f)) {
+                            when (currentScreen.intValue) {
+                                0 -> DashboardScreen(dashboardVM)
+                                1 -> AppListScreen(appListVM)
+                                2 -> BundleScreen(bundleVM)
+                            }
                         }
 
                         Row(
