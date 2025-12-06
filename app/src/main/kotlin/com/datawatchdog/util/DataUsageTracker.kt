@@ -1,8 +1,9 @@
 package com.datawatchdog.util
 
 import android.app.AppOpsManager
+import android.app.usage.NetworkStats
+import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.os.Build
@@ -26,151 +27,98 @@ data class AppDataUsage(
 
 class DataUsageTracker(private val context: Context) {
     private val packageManager = context.packageManager
-    private val appOpsManager = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+    private val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE) as NetworkStatsManager
 
     @RequiresApi(Build.VERSION_CODES.M)
     fun getAppDataUsage(): List<AppDataUsage> {
-        // Check if we have usage stats permission first
         if (!hasUsageStatsPermission()) {
-            println("DataUsageTracker: Usage stats permission not granted")
             return emptyList()
         }
-        
+
         val usageMap = mutableMapOf<String, AppDataUsage>()
         val now = System.currentTimeMillis()
-        val startTime = now - (24 * 60 * 60 * 1000) // Last 24 hours
+        val startTime = now - (24 * 60 * 60 * 1000)
 
         try {
-            // Use reflection to access NetworkStatsManager safely
-            val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE)
-                ?: return emptyList()
-
-            // Get the classes using reflection to avoid compile-time dependencies
-            val networkStatsManagerClass = networkStatsManager::class.java
-            val networkStatsClass = Class.forName("android.net.NetworkStats")
-            val bucketClass = Class.forName("android.net.NetworkStats\$Bucket")
-
-            // Get the query method
-            val queryMethod = networkStatsManagerClass.getMethod(
-                "queryDetailsForUid",
-                Int::class.java,
-                String::class.java,
-                Long::class.javaPrimitiveType,
-                Long::class.javaPrimitiveType,
-                Int::class.javaPrimitiveType
+            // Query mobile data
+            val mobileStats = networkStatsManager.querySummary(
+                ConnectivityManager.TYPE_MOBILE,
+                null,
+                startTime,
+                now
             )
 
-            // Constants for connection types (avoiding direct import)
-            val typeMobile = 0 // ConnectivityManager.TYPE_MOBILE
-            val typeWifi = 1   // ConnectivityManager.TYPE_WIFI
-            val uidAll = -1    // NetworkStatsManager.UID_ALL
+            processBuckets(mobileStats, usageMap, true)
+            mobileStats.close()
 
-            // Process mobile data
-            processNetworkStats(
-                queryMethod.invoke(networkStatsManager, typeMobile, null, startTime, now, uidAll),
-                networkStatsClass,
-                bucketClass,
-                usageMap,
-                true // isMobile
+            // Query WiFi data
+            val wifiStats = networkStatsManager.querySummary(
+                ConnectivityManager.TYPE_WIFI,
+                null,
+                startTime,
+                now
             )
 
-            // Process WiFi data
-            processNetworkStats(
-                queryMethod.invoke(networkStatsManager, typeWifi, null, startTime, now, uidAll),
-                networkStatsClass,
-                bucketClass,
-                usageMap,
-                false // isWiFi
-            )
+            processBuckets(wifiStats, usageMap, false)
+            wifiStats.close()
 
         } catch (e: Exception) {
-            // Gracefully handle any reflection or permission errors
-            println("DataUsageTracker: Error accessing NetworkStats: ${e.message}")
-            return emptyList()
+            e.printStackTrace()
         }
 
-        return usageMap.values
-            .filter { it.getTotal() > 0 }
-            .sortedByDescending { it.getTotal() }
+        return usageMap.values.filter { it.getTotal() > 0 }.sortedByDescending { it.getTotal() }
     }
 
-    private fun processNetworkStats(
-        networkStats: Any?,
-        networkStatsClass: Class<*>,
-        bucketClass: Class<*>,
+    private fun processBuckets(
+        networkStats: NetworkStats,
         usageMap: MutableMap<String, AppDataUsage>,
         isMobile: Boolean
     ) {
-        if (networkStats == null) return
+        val bucket = NetworkStats.Bucket()
+        while (networkStats.hasNextBucket()) {
+            networkStats.getNextBucket(bucket)
+            val uid = bucket.uid
+            val packageName = getPackageNameForUid(uid) ?: continue
 
-        try {
-            val hasNextBucketMethod = networkStatsClass.getMethod("hasNextBucket")
-            val getNextBucketMethod = networkStatsClass.getMethod("getNextBucket", bucketClass)
-            val closeMethod = networkStatsClass.getMethod("close")
-            val bucketConstructor = bucketClass.getConstructor()
+            if (uid < 10000) continue
 
-            // Get bucket fields
-            val uidField = bucketClass.getField("uid")
-            val rxBytesField = bucketClass.getField("rxBytes")
-            val txBytesField = bucketClass.getField("txBytes")
+            val existing = usageMap[packageName] ?: AppDataUsage(
+                packageName = packageName,
+                appName = getAppName(packageName),
+                mobileRx = 0,
+                mobileTx = 0,
+                wifiRx = 0,
+                wifiTx = 0
+            )
 
-            while (hasNextBucketMethod.invoke(networkStats) as Boolean) {
-                val bucket = bucketConstructor.newInstance()
-                getNextBucketMethod.invoke(networkStats, bucket)
-
-                val uid = uidField.getInt(bucket)
-                val rxBytes = rxBytesField.getLong(bucket)
-                val txBytes = txBytesField.getLong(bucket)
-
-                val packageName = getPackageNameForUid(uid) ?: continue
-
-                // Skip system UIDs and invalid packages
-                if (uid < 10000 || packageName.isEmpty()) continue
-
-                val existing = usageMap[packageName] ?: AppDataUsage(
-                    packageName = packageName,
-                    appName = getAppName(packageName),
-                    mobileRx = 0,
-                    mobileTx = 0,
-                    wifiRx = 0,
-                    wifiTx = 0
+            usageMap[packageName] = if (isMobile) {
+                existing.copy(
+                    mobileRx = existing.mobileRx + bucket.rxBytes,
+                    mobileTx = existing.mobileTx + bucket.txBytes
                 )
-
-                usageMap[packageName] = if (isMobile) {
-                    existing.copy(
-                        mobileRx = existing.mobileRx + rxBytes,
-                        mobileTx = existing.mobileTx + txBytes
-                    )
-                } else {
-                    existing.copy(
-                        wifiRx = existing.wifiRx + rxBytes,
-                        wifiTx = existing.wifiTx + txBytes
-                    )
-                }
+            } else {
+                existing.copy(
+                    wifiRx = existing.wifiRx + bucket.rxBytes,
+                    wifiTx = existing.wifiTx + bucket.txBytes
+                )
             }
-
-            // Close the NetworkStats object
-            closeMethod.invoke(networkStats)
-
-        } catch (e: Exception) {
-            println("DataUsageTracker: Error processing network stats: ${e.message}")
         }
     }
-    
+
+    @Suppress("DEPRECATION")
     private fun hasUsageStatsPermission(): Boolean {
         return try {
-            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
             val mode = appOps.checkOpNoThrow(
-                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
                 android.os.Process.myUid(),
                 context.packageName
             )
-            mode == android.app.AppOpsManager.MODE_ALLOWED
+            mode == AppOpsManager.MODE_ALLOWED
         } catch (e: Exception) {
             false
         }
     }
-    
 
     private fun getPackageNameForUid(uid: Int): String? {
         return try {
