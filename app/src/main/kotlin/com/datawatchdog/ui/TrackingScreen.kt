@@ -7,16 +7,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Apps
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -159,7 +158,7 @@ fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.History,
+                        imageVector = Icons.Default.List,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
@@ -316,7 +315,7 @@ fun ActiveTrackingCard(tracking: com.datawatchdog.db.AppTrackingEntity, onStop: 
                 shape = RoundedCornerShape(12.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Stop,
+                    imageVector = Icons.Default.Pause,
                     contentDescription = null,
                     modifier = Modifier.size(20.dp)
                 )
@@ -586,7 +585,7 @@ fun InstalledAppSelectorDialog(
                                     modifier = Modifier.padding(vertical = 8.dp)
                                 ) {
                                     Icon(
-                                        imageVector = Icons.Default.Apps,
+                                        imageVector = Icons.Default.PlayArrow,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(20.dp)
