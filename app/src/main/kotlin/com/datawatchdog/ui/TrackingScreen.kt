@@ -20,10 +20,13 @@ import java.util.*
 
 @Composable
 fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val activeTracking by trackingVM.activeTracking.collectAsState()
     val completedTrackings by trackingVM.completedTrackings.collectAsState()
-    val allApps by appListVM.allApps.collectAsState()
     var showAppSelector by remember { mutableStateOf(false) }
+    val installedApps = remember {
+        com.datawatchdog.util.InstalledAppsProvider(context).getAllInstalledApps()
+    }
 
     Column(
         modifier = Modifier
@@ -69,8 +72,8 @@ fun TrackingScreen(trackingVM: TrackingViewModel, appListVM: AppListViewModel) {
     }
 
     if (showAppSelector) {
-        AppSelectorDialog(
-            apps = allApps,
+        InstalledAppSelectorDialog(
+            apps = installedApps,
             onDismiss = { showAppSelector = false },
             onSelect = { packageName, appName ->
                 trackingVM.startTracking(packageName, appName)
@@ -211,22 +214,42 @@ fun CompletedTrackingCard(tracking: com.datawatchdog.db.AppTrackingEntity, onDel
 }
 
 @Composable
-fun AppSelectorDialog(
-    apps: List<com.datawatchdog.util.AppDataUsage>,
+fun InstalledAppSelectorDialog(
+    apps: List<com.datawatchdog.util.InstalledApp>,
     onDismiss: () -> Unit,
     onSelect: (String, String) -> Unit
 ) {
+    var searchQuery by remember { mutableStateOf("") }
+    val filteredApps = remember(apps, searchQuery) {
+        if (searchQuery.isEmpty()) {
+            apps
+        } else {
+            apps.filter { it.appName.contains(searchQuery, ignoreCase = true) }
+        }
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select App to Track") },
         text = {
-            LazyColumn(modifier = Modifier.height(400.dp)) {
-                items(apps) { app ->
-                    TextButton(
-                        onClick = { onSelect(app.packageName, app.appName) },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(app.appName, modifier = Modifier.fillMaxWidth())
+            Column {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search apps...") },
+                    placeholder = { Text("WhatsApp, YouTube, etc.") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyColumn(modifier = Modifier.height(400.dp)) {
+                    items(filteredApps) { app ->
+                        TextButton(
+                            onClick = { onSelect(app.packageName, app.appName) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(app.appName, modifier = Modifier.fillMaxWidth())
+                        }
                     }
                 }
             }
