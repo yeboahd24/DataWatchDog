@@ -72,7 +72,6 @@ class DashboardViewModel(context: Context) : ViewModel() {
                 _bundleInfo.value = bundle
 
                 // Get recent drain alerts (last hour)
-                val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000)
                 val alerts = db.drainAlertDao().getRecentAlerts(oneHourAgo)
                 _drainAlerts.value = alerts
             } catch (e: Exception) {
