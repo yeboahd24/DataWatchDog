@@ -262,26 +262,52 @@ fun InstalledAppSelectorDialog(
                         color = Color.Gray
                     )
                 } else {
+                    val userApps = filteredApps.filter { it.isUserInstalled }
+                    val systemApps = filteredApps.filter { !it.isUserInstalled }
+                    
                     LazyColumn(modifier = Modifier.height(400.dp)) {
-                        items(filteredApps) { app ->
-                            TextButton(
-                                onClick = { onSelect(app.packageName, app.appName) },
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                        if (userApps.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "📱 Your Apps (${userApps.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(8.dp),
+                                    color = Color(0xFF51CF66)
+                                )
+                            }
+                            items(userApps) { app ->
+                                TextButton(
+                                    onClick = { onSelect(app.packageName, app.appName) },
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
                                         app.appName,
+                                        modifier = Modifier.fillMaxWidth(),
                                         color = Color.Black
                                     )
-                                    if (app.isUserInstalled) {
-                                        Text(
-                                            "📱",
-                                            fontSize = 12.sp
-                                        )
-                                    }
+                                }
+                            }
+                        }
+                        
+                        if (systemApps.isNotEmpty()) {
+                            item {
+                                Text(
+                                    "⚙️ System Apps (${systemApps.size})",
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier.padding(8.dp),
+                                    color = Color.Gray
+                                )
+                            }
+                            items(systemApps) { app ->
+                                TextButton(
+                                    onClick = { onSelect(app.packageName, app.appName) },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        app.appName,
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = Color.Gray
+                                    )
                                 }
                             }
                         }

@@ -19,17 +19,19 @@ class InstalledAppsProvider(private val context: Context) {
             try {
                 val isUserApp = appInfo.flags and ApplicationInfo.FLAG_SYSTEM == 0
                 val isUpdatedSystemApp = appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP != 0
+                val isLaunchable = packageManager.getLaunchIntentForPackage(appInfo.packageName) != null
+                
                 InstalledApp(
                     packageName = appInfo.packageName,
                     appName = packageManager.getApplicationLabel(appInfo).toString(),
-                    isUserInstalled = isUserApp || isUpdatedSystemApp
+                    isUserInstalled = isUserApp || isUpdatedSystemApp || isLaunchable
                 )
             } catch (e: Exception) {
                 null
             }
         }.distinctBy { it.packageName }
         
-        // Sort: user apps first, then by name
+        // Sort: launchable/user apps first, then by name
         return allApps.sortedWith(
             compareByDescending<InstalledApp> { it.isUserInstalled }
                 .thenBy { it.appName.lowercase() }
