@@ -1,13 +1,8 @@
 package com.datawatchdog.util
 
-import android.app.AppOpsManager
-import android.app.usage.NetworkStats
-import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.pm.PackageManager
-import android.net.ConnectivityManager
-import android.os.Build
-import androidx.annotation.RequiresApi
+import android.net.TrafficStats
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -15,6 +10,7 @@ import java.util.Locale
 data class AppDataUsage(
     val packageName: String,
     val appName: String,
+    val uid: Int,
     val mobileRx: Long,
     val mobileTx: Long,
     val wifiRx: Long,
@@ -27,113 +23,70 @@ data class AppDataUsage(
 
 class DataUsageTracker(private val context: Context) {
     private val packageManager = context.packageManager
-    private val networkStatsManager = context.getSystemService(Context.NETWORK_STATS_SERVICE) as NetworkStatsManager
 
-    @RequiresApi(Build.VERSION_CODES.M)
-    fun getAppDataUsage(hoursBack: Int = 24): List<AppDataUsage> {
-        if (!hasUsageStatsPermission()) {
-            return emptyList()
-        }
+    /**
+     * Get data usage for all apps using TrafficStats API
+     * No permissions required, works since device boot
+     */
+    fun getAppDataUsage(): List<AppDataUsage> {
+        val apps = packageManager.getInstalledApplications(PackageManager.GET_META_DATA)
+        val results = mutableListOf<AppDataUsage>()
 
-        val usageMap = mutableMapOf<String, AppDataUsage>()
-        val now = System.currentTimeMillis()
-        val startTime = now - (hoursBack * 60 * 60 * 1000)
+        apps.forEach { appInfo ->
+            val uid = appInfo.uid
 
-        try {
-            // Query mobile data
-            val mobileStats = networkStatsManager.querySummary(
-                ConnectivityManager.TYPE_MOBILE,
-                null,
-                startTime,
-                now
-            )
+            // Get total data usage since boot (TrafficStats doesn't separate mobile/WiFi)
+            val totalRx = TrafficStats.getUidRxBytes(uid)
+            val totalTx = TrafficStats.getUidTxBytes(uid)
 
-            processBuckets(mobileStats, usageMap, true)
-            mobileStats.close()
+            // TrafficStats returns -1 if not supported or no data
+            if (totalRx < 0 || totalTx < 0) return@forEach
 
-            // Query WiFi data
-            val wifiStats = networkStatsManager.querySummary(
-                ConnectivityManager.TYPE_WIFI,
-                null,
-                startTime,
-                now
-            )
+            // Skip if no usage
+            if (totalRx + totalTx == 0L) return@forEach
 
-            processBuckets(wifiStats, usageMap, false)
-            wifiStats.close()
-
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return usageMap.values.filter { it.getTotal() > 0 }.sortedByDescending { it.getTotal() }
-    }
-
-    private fun processBuckets(
-        networkStats: NetworkStats,
-        usageMap: MutableMap<String, AppDataUsage>,
-        isMobile: Boolean
-    ) {
-        val bucket = NetworkStats.Bucket()
-        while (networkStats.hasNextBucket()) {
-            networkStats.getNextBucket(bucket)
-            val uid = bucket.uid
-            val packageName = getPackageNameForUid(uid) ?: continue
-
-            if (uid < 10000) continue
-
-            val existing = usageMap[packageName] ?: AppDataUsage(
-                packageName = packageName,
-                appName = getAppName(packageName),
-                mobileRx = 0,
-                mobileTx = 0,
-                wifiRx = 0,
-                wifiTx = 0
-            )
-
-            usageMap[packageName] = if (isMobile) {
-                existing.copy(
-                    mobileRx = existing.mobileRx + bucket.rxBytes,
-                    mobileTx = existing.mobileTx + bucket.txBytes
+            // For now, we'll treat all traffic as "mobile" since TrafficStats doesn't separate
+            // In a future update, we can add logic to estimate mobile vs WiFi
+            results.add(
+                AppDataUsage(
+                    packageName = appInfo.packageName,
+                    appName = appInfo.loadLabel(packageManager).toString(),
+                    uid = uid,
+                    mobileRx = totalRx, // Treating all as mobile for simplicity
+                    mobileTx = totalTx,
+                    wifiRx = 0L, // Could be enhanced later
+                    wifiTx = 0L
                 )
-            } else {
-                existing.copy(
-                    wifiRx = existing.wifiRx + bucket.rxBytes,
-                    wifiTx = existing.wifiTx + bucket.txBytes
-                )
-            }
-        }
-    }
-
-    @Suppress("DEPRECATION")
-    private fun hasUsageStatsPermission(): Boolean {
-        return try {
-            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-            val mode = appOps.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                android.os.Process.myUid(),
-                context.packageName
             )
-            mode == AppOpsManager.MODE_ALLOWED
-        } catch (e: Exception) {
-            false
         }
+
+        return results.sortedByDescending { it.getTotal() }
     }
 
-    private fun getPackageNameForUid(uid: Int): String? {
-        return try {
-            packageManager.getPackagesForUid(uid)?.firstOrNull()
-        } catch (e: Exception) {
-            null
-        }
-    }
-
-    private fun getAppName(packageName: String): String {
+    /**
+     * Get data usage for a specific app by package name
+     */
+    fun getAppDataUsageByPackage(packageName: String): AppDataUsage? {
         return try {
             val appInfo = packageManager.getApplicationInfo(packageName, 0)
-            packageManager.getApplicationLabel(appInfo).toString()
+            val uid = appInfo.uid
+
+            val totalRx = TrafficStats.getUidRxBytes(uid)
+            val totalTx = TrafficStats.getUidTxBytes(uid)
+
+            if (totalRx < 0 || totalTx < 0) return null
+
+            AppDataUsage(
+                packageName = packageName,
+                appName = appInfo.loadLabel(packageManager).toString(),
+                uid = uid,
+                mobileRx = totalRx,
+                mobileTx = totalTx,
+                wifiRx = 0L,
+                wifiTx = 0L
+            )
         } catch (e: Exception) {
-            packageName
+            null
         }
     }
 

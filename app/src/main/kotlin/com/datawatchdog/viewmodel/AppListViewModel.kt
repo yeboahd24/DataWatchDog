@@ -34,6 +34,7 @@ class AppListViewModel(context: Context) : ViewModel() {
 
     private fun loadData() {
         viewModelScope.launch {
+            // Use the new TrafficStats-based approach (no parameters needed)
             val appsList = tracker.getAppDataUsage()
             _allApps.value = appsList
         }

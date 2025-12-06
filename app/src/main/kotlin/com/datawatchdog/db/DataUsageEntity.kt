@@ -9,13 +9,18 @@ data class DataUsageEntity(
     val id: Int = 0,
     val packageName: String,
     val appName: String,
+    val uid: Int,
     val mobileRx: Long,
     val mobileTx: Long,
     val wifiRx: Long,
     val wifiTx: Long,
     val timestamp: Long,
     val date: String
-)
+) {
+    fun getTotalMobile() = mobileRx + mobileTx
+    fun getTotalWifi() = wifiRx + wifiTx
+    fun getTotal() = getTotalMobile() + getTotalWifi()
+}
 
 @Entity(tableName = "bundle_info")
 data class BundleEntity(

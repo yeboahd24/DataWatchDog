@@ -33,8 +33,8 @@ class TrackingViewModel(private val context: Context) : ViewModel() {
 
     fun startTracking(packageName: String, appName: String) {
         viewModelScope.launch {
-            val usageList = tracker.getAppDataUsage()
-            val appUsage = usageList.find { it.packageName == packageName }
+            // Use the new TrafficStats-based approach
+            val appUsage = tracker.getAppDataUsageByPackage(packageName)
 
             if (appUsage != null) {
                 val tracking = AppTrackingEntity(
@@ -56,8 +56,8 @@ class TrackingViewModel(private val context: Context) : ViewModel() {
     fun stopTracking() {
         viewModelScope.launch {
             val active = _activeTracking.value ?: return@launch
-            val usageList = tracker.getAppDataUsage()
-            val appUsage = usageList.find { it.packageName == active.packageName }
+            // Use the new TrafficStats-based approach
+            val appUsage = tracker.getAppDataUsageByPackage(active.packageName)
 
             if (appUsage != null) {
                 val updated = active.copy(

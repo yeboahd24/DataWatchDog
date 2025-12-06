@@ -43,6 +43,7 @@ class DashboardViewModel(context: Context) : ViewModel() {
         viewModelScope.launch {
             try {
                 // Get live data from NetworkStatsManager
+                // Use the new TrafficStats-based approach (no parameters needed)
                 val appUsageList = tracker.getAppDataUsage()
                 
                 val mobileUsage = appUsageList.sumOf { it.mobileRx + it.mobileTx }
@@ -60,6 +61,7 @@ class DashboardViewModel(context: Context) : ViewModel() {
                     AppDataUsage(
                         packageName = agg.packageName,
                         appName = agg.appName,
+                        uid = 0, // UID not available from aggregated data
                         mobileRx = agg.mobileRx,
                         mobileTx = agg.mobileTx,
                         wifiRx = agg.wifiRx,
