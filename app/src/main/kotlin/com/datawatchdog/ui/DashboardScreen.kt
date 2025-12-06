@@ -21,6 +21,7 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
     val topApps by viewModel.topApps.collectAsState()
     val bundleInfo by viewModel.bundleInfo.collectAsState()
     val drainAlerts by viewModel.drainAlerts.collectAsState()
+    val recentUsage by viewModel.recentUsage.collectAsState()
 
     Column(
         modifier = Modifier
@@ -141,7 +142,39 @@ fun DashboardScreen(viewModel: DashboardViewModel) {
         }
 
         Text(
-            "Top 5 Apps",
+            "Top 5 Apps (Last Hour)",
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color.White,
+            modifier = Modifier.padding(bottom = 12.dp)
+        )
+
+        if (recentUsage.isEmpty()) {
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E))
+            ) {
+                Text(
+                    "No recent activity. Use some apps to see data.",
+                    fontSize = 14.sp,
+                    color = Color(0xFFBBBBBB),
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        } else {
+            recentUsage.forEach { app ->
+                AppUsageRow(
+                    appName = app.appName,
+                    mobile = String.format("%.2f MB", app.getTotalMobile() / (1024.0 * 1024.0)),
+                    wifi = String.format("%.2f MB", app.getTotalWifi() / (1024.0 * 1024.0))
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            "Top 5 Apps (Today)",
             fontSize = 16.sp,
             fontWeight = FontWeight.Bold,
             color = Color.White,

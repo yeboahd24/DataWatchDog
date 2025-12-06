@@ -28,8 +28,14 @@ class DataMonitorService : Service() {
     private lateinit var smsParser: SmsParser
     private val handler = Handler(Looper.getMainLooper())
     private val scope = CoroutineScope(Dispatchers.IO)
-    private var lastMobileUsage = 0L
-    private var lastWifiUsage = 0L
+    private val lastSnapshot = mutableMapOf<String, AppSnapshot>()
+
+data class AppSnapshot(
+    val mobileRx: Long,
+    val mobileTx: Long,
+    val wifiRx: Long,
+    val wifiTx: Long
+)
 
     override fun onCreate() {
         super.onCreate()
@@ -62,11 +68,40 @@ class DataMonitorService : Service() {
         try {
             val usageList = tracker.getAppDataUsage()
             val today = tracker.getTodayDate()
+            val now = System.currentTimeMillis()
 
             for (usage in usageList) {
+                val last = lastSnapshot[usage.packageName]
+                
+                val deltaMobileRx = if (last != null) (usage.mobileRx - last.mobileRx).coerceAtLeast(0) else 0L
+                val deltaMobileTx = if (last != null) (usage.mobileTx - last.mobileTx).coerceAtLeast(0) else 0L
+                val deltaWifiRx = if (last != null) (usage.wifiRx - last.wifiRx).coerceAtLeast(0) else 0L
+                val deltaWifiTx = if (last != null) (usage.wifiTx - last.wifiTx).coerceAtLeast(0) else 0L
+                
+                val deltaTotal = deltaMobileRx + deltaMobileTx + deltaWifiRx + deltaWifiTx
+                
+                if (deltaTotal > 0) {
+                    val entity = DataUsageEntity(
+                        packageName = usage.packageName,
+                        appName = usage.appName,
+                        mobileRx = deltaMobileRx,
+                        mobileTx = deltaMobileTx,
+                        wifiRx = deltaWifiRx,
+                        wifiTx = deltaWifiTx,
+                        timestamp = now,
+                        date = today
+                    )
+                    db.dataUsageDao().insertUsage(entity)
+                }
+                
+                lastSnapshot[usage.packageName] = AppSnapshot(
+                    mobileRx = usage.mobileRx,
+                    mobileTx = usage.mobileTx,
+                    wifiRx = usage.wifiRx,
+                    wifiTx = usage.wifiTx
+                )
+                
                 val totalMobile = usage.getTotalMobile()
-                val totalWifi = usage.getTotalWifi()
-
                 drainDetector.recordUsage(usage.packageName, totalMobile)
 
                 if (drainDetector.isDraining(usage.packageName)) {
@@ -75,23 +110,11 @@ class DataMonitorService : Service() {
                         packageName = usage.packageName,
                         appName = usage.appName,
                         drainRate = drainRate,
-                        timestamp = System.currentTimeMillis()
+                        timestamp = now
                     )
                     db.drainAlertDao().insertAlert(alert)
                     showDrainNotification(usage.appName, drainRate)
                 }
-
-                val entity = DataUsageEntity(
-                    packageName = usage.packageName,
-                    appName = usage.appName,
-                    mobileRx = usage.mobileRx,
-                    mobileTx = usage.mobileTx,
-                    wifiRx = usage.wifiRx,
-                    wifiTx = usage.wifiTx,
-                    timestamp = System.currentTimeMillis(),
-                    date = today
-                )
-                db.dataUsageDao().insertUsage(entity)
             }
         } catch (e: Exception) {
             e.printStackTrace()

@@ -33,9 +33,11 @@ import com.datawatchdog.ui.AppListScreen
 import com.datawatchdog.ui.BundleScreen
 import com.datawatchdog.ui.DashboardScreen
 import com.datawatchdog.ui.PermissionRequestScreen
+import com.datawatchdog.ui.TrackingScreen
 import com.datawatchdog.viewmodel.AppListViewModel
 import com.datawatchdog.viewmodel.BundleViewModel
 import com.datawatchdog.viewmodel.DashboardViewModel
+import com.datawatchdog.viewmodel.TrackingViewModel
 import android.app.AppOpsManager
 import android.content.Context
 import androidx.compose.runtime.*
@@ -66,6 +68,7 @@ class MainActivity : ComponentActivity() {
             val dashboardVM = DashboardViewModel(this)
             val appListVM = AppListViewModel(this)
             val bundleVM = BundleViewModel(this)
+            val trackingVM = TrackingViewModel(this)
 
             Surface(
                 modifier = Modifier.fillMaxSize(),
@@ -84,6 +87,7 @@ class MainActivity : ComponentActivity() {
                                 0 -> DashboardScreen(dashboardVM)
                                 1 -> AppListScreen(appListVM)
                                 2 -> BundleScreen(bundleVM)
+                                3 -> TrackingScreen(trackingVM, appListVM)
                             }
                         }
 
@@ -126,7 +130,19 @@ class MainActivity : ComponentActivity() {
                                     containerColor = if (currentScreen.intValue == 2) Color(0xFF51CF66) else Color(0xFF333333)
                                 )
                             ) {
-                                Text("Bundle", fontSize = 12.sp, color = Color.White)
+                                Text("Bundle", fontSize = 11.sp, color = Color.White)
+                            }
+
+                            Button(
+                                onClick = { currentScreen.intValue = 3 },
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(4.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (currentScreen.intValue == 3) Color(0xFF51CF66) else Color(0xFF333333)
+                                )
+                            ) {
+                                Text("Track", fontSize = 11.sp, color = Color.White)
                             }
                         }
                     }

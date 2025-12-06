@@ -25,6 +25,9 @@ class DashboardViewModel(context: Context) : ViewModel() {
     private val _topApps = MutableStateFlow<List<AppDataUsage>>(emptyList())
     val topApps: StateFlow<List<AppDataUsage>> = _topApps
 
+    private val _recentUsage = MutableStateFlow<List<AppDataUsage>>(emptyList())
+    val recentUsage: StateFlow<List<AppDataUsage>> = _recentUsage
+
     private val _bundleInfo = MutableStateFlow<BundleEntity?>(null)
     val bundleInfo: StateFlow<BundleEntity?> = _bundleInfo
 
@@ -48,6 +51,21 @@ class DashboardViewModel(context: Context) : ViewModel() {
                 _totalMobileUsage.value = tracker.bytesToMB(mobileUsage)
                 _totalWifiUsage.value = tracker.bytesToMB(wifiUsage)
                 _topApps.value = appUsageList.sortedByDescending { it.getTotal() }.take(5)
+
+                // Get recent usage from last hour (incremental data)
+                val oneHourAgo = System.currentTimeMillis() - (60 * 60 * 1000)
+                val now = System.currentTimeMillis()
+                val recentAggregated = db.dataUsageDao().getAggregatedUsage(oneHourAgo, now)
+                _recentUsage.value = recentAggregated.map { agg ->
+                    AppDataUsage(
+                        packageName = agg.packageName,
+                        appName = agg.appName,
+                        mobileRx = agg.mobileRx,
+                        mobileTx = agg.mobileTx,
+                        wifiRx = agg.wifiRx,
+                        wifiTx = agg.wifiTx
+                    )
+                }.sortedByDescending { it.getTotal() }.take(5)
 
                 // Get bundle info
                 val bundle = db.bundleDao().getBundle()

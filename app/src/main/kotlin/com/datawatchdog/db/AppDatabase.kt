@@ -6,14 +6,15 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 
 @Database(
-    entities = [DataUsageEntity::class, BundleEntity::class, DrainAlertEntity::class],
-    version = 1,
+    entities = [DataUsageEntity::class, BundleEntity::class, DrainAlertEntity::class, AppTrackingEntity::class],
+    version = 2,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dataUsageDao(): DataUsageDao
     abstract fun bundleDao(): BundleDao
     abstract fun drainAlertDao(): DrainAlertDao
+    abstract fun appTrackingDao(): AppTrackingDao
 
     companion object {
         @Volatile
@@ -25,7 +26,7 @@ abstract class AppDatabase : RoomDatabase() {
                     context.applicationContext,
                     AppDatabase::class.java,
                     "datawatchdog_db"
-                ).build()
+                ).fallbackToDestructiveMigration().build()
                 INSTANCE = instance
                 instance
             }
